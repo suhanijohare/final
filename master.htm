@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Interface</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        /* General Styles */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fc;
+            color: #2c3e50;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-bottom: 3px solid #0056b3;
+        }
+        .tab {
+            cursor: pointer;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        .tab:hover, .active-tab {
+            background-color: #0056b3;
+            border-bottom: 3px solid #004494;
+        }
+        .content {
+            display: none;
+            padding: 30px;
+            height: calc(100% - 80px);
+        }
+        .active-content {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #34495e;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+            background-color: #fff;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        .button {
+            padding: 12px 28px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: 500;
+        }
+        .button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .sos-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        .sos-button .button {
+            background-color: #e74c3c;
+            font-size: 18px;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .sos-button .button:hover {
+            background-color: #c0392b;
+        }
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background-color: #ecf0f1;
+            padding: 40px;
+        }
+        .login-box {
+            width: 400px;
+            padding: 40px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            background-color: #fff;
+        }
+        .login-box h2 {
+            margin-bottom: 30px;
+            color: #007bff;
+            font-size: 26px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .leaflet-routing-container {
+            width: 250px !important;
+            max-height: 300px;
+            font-size: 12px !important;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            background: #fff;
+            border-radius: 5px;
+        }
+        /* Legend styles */
+        .legend {
+            background: white;
+            padding: 10px 15px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .legend div {
+            margin-bottom: 5px;
+        }
+        .legend .color-box {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        /* Customizing map containers */
+        #map-patient, #map-driver {
+            height: 60vh;
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <div class="tab active-tab" onclick="switchTab('patient')">Patient POV</div>
+        <div class="tab" onclick="switchTab('driver')">Driver POV</div>
+        <div class="tab" onclick="switchTab('paramedic')">Paramedic POV</div>
+    </div>
+
+    <!-- Patient POV Content -->
+    <div id="patient" class="content active-content">
+        <div class="sos-button">
+            <button class="button" onclick="orderAmbulance()">Order an Ambulance</button>
+        </div>
+        <div id="map-patient" style="display:none;"></div>
+        <div id="eta-container" class="container" style="text-align: center; font-size: 20px; display:none;">
+            <p>Ambulance is on the way. Estimated Time of Arrival: <span id="eta" style="font-weight: bold; color: #e74c3c;">15</span> minutes.</p>
+        </div>
+        <!-- Contact Form for Patient -->
+        <div id="contact-form" class="container" style="display: none;">
+            <h3>Enter Your Contact Number</h3>
+            <div class="form-group">
+                <label for="contact-number">Contact Number:</label>
+                <input type="text" id="contact-number" name="contact-number" placeholder="Enter contact number">
+            </div>
+            <div class="form-group">
+                <label for="patient-name">Patient Name*:</label>
+                <input type="text" id="patient-name" name="patient-name" placeholder="Enter patient name" required>
+            </div>
+    
+            <div class="form-group">
+                <label for="attendee-name">Attendee Name:</label>
+                <input type="text" id="attendee-name" name="attendee-name" placeholder="Enter attendee name (optional)">
+            </div>
+    
+            <div class="form-group">
+                <label for="category">Category:</label>
+                <select id="category" name="category" onchange="toggleOtherCategory()">
+                    <option value="">Select</option>
+                    <option value="Cardiac">Cardiac</option>
+                    <option value="Accident">Accident</option>
+                    <option value="Others">Others</option>
+                </select>
+            </div>
+    
+            <div class="form-group" id="other-category-group" style="display: none;">
+                <label for="other-category">Specify Other Category:</label>
+                <input type="text" id="other-category" name="other-category" placeholder="Specify condition">
+            </div>
+            <button class="button" onclick="submitContactNumber()">Submit</button>
+        </div>
+    </div>
+
+    <!-- Driver POV Content -->
+    <div id="driver" class="content">
+        <div id="driver-login" class="login-container">
+            <div class="login-box">
+                <h2>Driver Login</h2>
+                <div class="form-group">
+                    <label for="driver-username">Username:</label>
+                    <input type="text" id="driver-username">
+                </div>
+                <div class="form-group">
+                    <label for="driver-password">Password:</label>
+                    <input type="password" id="driver-password">
+                </div>
+                <button class="button" onclick="loginDriver()">Login</button>
+                <p id="driver-login-status"></p>
+            </div>
+        </div>
+        <div id="map-driver" style="display:none;"></div>
+        <!-- Legend for hospital availability -->
+<div id="legend-driver" class="legend" style="display: none;">
+    <div><span class="color-box" style="background-color: green;"></span> Available Hospital</div>
+    <div><span class="color-box" style="background-color: red;"></span> Full Hospital</div>
+</div>
+
+        <div id="driver-contact-number" class="container" style="font-size: 18px; padding: 20px;">
+            <!-- Contact number will appear here -->
+        </div>
+    </div>
+
+    <!-- Paramedic POV Content -->
+<div id="paramedic" class="content">
+    <div id="paramedic-login" class="login-container">
+        <div class="login-box">
+            <h2>Paramedic Login</h2>
+            <div class="form-group">
+                <label for="paramedic-username">Username:</label>
+                <input type="text" id="paramedic-username">
+            </div>
+            <div class="form-group">
+                <label for="paramedic-password">Password:</label>
+                <input type="password" id="paramedic-password">
+            </div>
+            <button class="button" onclick="loginParamedic()">Login</button>
+            <p id="paramedic-login-status"></p>
+        </div>
+    </div>
+
+    <div id="paramedic-content" class="container" style="display: none;">
+        <h1>Update Patient Data</h1>
+
+        <div class="form-group">
+            <label for="patient-name">Patient Name:</label>
+            <input type="text" id="patient-name">
+        </div>
+
+        <div class="form-group">
+            <label for="identity-type">Patient Identity:</label>
+            <select id="identity-type">
+                <option value="aadhar">Aadhar Number</option>
+                <option value="pan">PAN Number</option>
+                <option value="voter-id">Voter ID</option>
+            </select>
+            <input type="text" id="identity-value" placeholder="Enter ID number">
+        </div>
+
+        <div class="form-group">
+            <label for="country-code">Country Code:</label>
+            <select id="country-code">
+                <option value="+91">India (+91)</option>
+                <option value="+1">USA (+1)</option>
+                <option value="+44">UK (+44)</option>
+            </select>
+            <input type="text" id="contact-number" placeholder="Enter contact number">
+        </div>
+
+        <div class="form-group">
+            <label for="temperature">Temperature (°C):</label>
+            <input type="text" id="temperature">
+        </div>
+
+        <div class="form-group">
+            <label for="blood-group">Blood Group:</label>
+            <input type="text" id="blood-group">
+        </div>
+
+        <div class="form-group">
+            <label for="ecg-report">Upload ECG Report (Photo/PDF):</label>
+            <input type="file" id="ecg-report" accept=".jpg,.jpeg,.png,.pdf">
+        </div>
+
+        <div class="form-group">
+            <label for="pulse-rate">Pulse Rate (bpm):</label>
+            <input type="text" id="pulse-rate">
+        </div>
+
+        <div class="form-group">
+            <label for="blood-pressure">Blood Pressure (mm Hg):</label>
+            <input type="text" id="blood-pressure">
+        </div>
+
+        <div class="form-group">
+            <label for="oxygen-saturation">Oxygen Saturation (SpO2) (%):</label>
+            <input type="text" id="oxygen-saturation">
+        </div>
+
+        <div class="form-group">
+            <label for="respiratory-rate">Respiratory Rate (breaths per minute):</label>
+            <input type="text" id="respiratory-rate">
+        </div>
+
+        <div class="form-group">
+            <label for="blood-glucose">Blood Glucose Level (mg/dL):</label>
+            <input type="text" id="blood-glucose">
+        </div>
+
+        <div class="form-group">
+            <label for="severity">Severity (Low / Medium / High):</label>
+            <select id="severity">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+        </div>
+        
+
+        <div class="form-group">
+            <label for="current-symptoms">Current Symptoms:</label>
+            <textarea id="current-symptoms"></textarea>
+        </div>
+
+        <button class="button" onclick="upload()">Upload Data</button>
+        <p id="status"></p>
+    </div>
+</div>
+
+
+<!-- ✅ Required: Add this to your HTML <head> or before </body> -->
+    <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
+  />
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+  
+
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<!-- Leaflet.js and Leaflet Routing Machine -->
+<script>
+    
+    let patientLocation = [22.7196, 75.8577];
+    let contactNumber = "";
+    let mapPatient;  // Initialize your patient map variable here
+    let mapDriver;   // Initialize your driver map variable here
+    let hospitalLocation = [28.7041, 77.1025];  // Example hospital location
+
+    // Initialize the patient map
+    //mapPatient = L.map('map-patient').setView([28.7041, 77.1025], 13);  // Set map center to Delhi (Example)
+    //setTimeout(() => mapPatient.invalidateSize(), 500);
+    // Initialize the driver map
+    //mapDriver = L.map('map-driver').setView([28.7041, 77.1025], 13);  // Set map center to Delhi (Example)
+    //setTimeout(() => mapDriver.invalidateSize(), 500);
+    // Add OpenStreetMap tile layer for both maps
+    //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapPatient);
+    //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapDriver);
+
+    // Add the hospital markers (Green if available, Red if not) for both maps
+    let hospitals = [
+        { lat: 28.7041, lon: 77.1025, available: true },  // Example hospital 1 (Available)
+        { lat: 28.5355, lon: 77.3910, available: false }, // Example hospital 2 (Unavailable)
+    ];
+
+    hospitals.forEach(hospital => {
+        let color = hospital.available ? 'green' : 'red';  // Green if available, Red if not
+        L.circleMarker([hospital.lat, hospital.lon], {
+            color: color,
+            radius: 10,
+        }).addTo(mapPatient).bindPopup(hospital.available ? 'Hospital Available' : 'Hospital Unavailable');
+        L.circleMarker([hospital.lat, hospital.lon], {
+            color: color,
+            radius: 10,
+        }).addTo(mapDriver).bindPopup(hospital.available ? 'Hospital Available' : 'Hospital Unavailable');
+    });
+    // Initialize the map
+    //mapDriver = L.map('map-driver').setView([37.7749, -122.4194], 13);  // Set map center to Indore (Example)
+
+    // Add OpenStreetMap tile layer
+    //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+
+// ✅ Fetch hospital data dynamically from the hospital server
+fetch('http://127.0.0.1:8001/api/hospitals/')
+    .then(response => response.json())
+    .then(data => {
+        data.forEach(hospital => {
+            let color = hospital.is_available ? 'green' : 'red';
+            L.circleMarker([hospital.latitude, hospital.longitude], {
+                color: color,
+                radius: 10,
+            }).addTo(map).bindPopup(hospital.name + ' - ' + (hospital.is_available ? 'Available' : 'Unavailable'));
+        });
+    })
+    .catch(error => {
+        console.error('Error fetching hospital data:', error);
+    });
+
+
+    // Function to order an ambulance and ask for location access
+    function orderAmbulance() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                patientLocation = [position.coords.latitude, position.coords.longitude];
+                console.log("Patient's location:", patientLocation);
+                patientLocation = [22.7196, 75.8577]; 
+
+                // Show contact form only after getting location
+                document.getElementById('contact-form').style.display = 'block';
+                //document.getElementById('map-patient').style.display = 'block';
+
+
+                
+
+            }, function (error) {
+                alert("Please enable location access to order an ambulance.");
+            }); 
+        } else {
+            alert("Geolocation is not supported by your browser.");
+        }
+    }
+
+    // Function to calculate route from patient to the nearest hospital
+    function calculateRoute(patientLocation, hospitalLocation) {
+        // Use Leaflet Routing Machine to plot the route
+        L.Routing.control({
+            waypoints: [
+                L.latLng(patientLocation[0], patientLocation[1]),
+                L.latLng(hospitalLocation[0], hospitalLocation[1])
+            ],
+            routeWhileDragging: true
+        }).addTo(map);
+    }
+    
+   
+
+    // Optional: Switch tab functionality for different content sections
+    function switchTab(tab) {
+        console.log('switchTab triggered for:', tab);
+        document.querySelectorAll('.content').forEach(content => {
+            content.classList.remove('active-content');
+        });
+        document.querySelectorAll('.tab').forEach(tabElement => {
+            tabElement.classList.remove('active-tab');
+        });
+
+        document.getElementById(tab).classList.add('active-content');
+        const activeTab = document.querySelector(`.tab[onclick="switchTab('${tab}')"]`);
+        activeTab.classList.add('active-tab');
+    }
+
+
+function loginParamedic() {
+    let username = document.getElementById('paramedic-username').value;
+    let password = document.getElementById('paramedic-password').value;
+
+    if (username === "paramedic" && password === "1234") {  // Replace with actual validation logic
+        document.getElementById('paramedic-login-status').innerText = "Login Successful!";
+        document.getElementById('paramedic-login').style.display = 'none';
+        document.getElementById('paramedic-content').style.display = 'block';
+        document.getElementById("legend-driver").style.display = "block";
+    } else {
+        document.getElementById('paramedic-login-status').innerText = "Invalid credentials. Try again.";
+        document.getElementById('paramedic-login-status').style.color = "red";
+    }
+}
+
+
+    function toggleOtherCondition() {
+        const condition = document.getElementById("patient-condition").value;
+        const otherField = document.getElementById("other-condition-group");
+        otherField.style.display = (condition === "Other") ? "block" : "none";
+    }
+
+
+
+// Main form submission
+function submitContactNumber() {
+    contactNumber = document.getElementById('contact-number').value.trim();
+    const patientName = document.getElementById('patient-name').value.trim();
+    const attendeeName = document.getElementById('attendee-name').value.trim();
+    const condition = document.getElementById('category').value;
+    const otherCondition = document.getElementById('other-category').value.trim();
+
+    if (!contactNumber || !patientName) {
+        alert("Please enter both the patient's name and contact number.");
+        return;
+    }
+
+    if (condition === "Others" && !otherCondition) {
+        alert("Please specify the patient's condition under 'Others'.");
+        return;
+    }
+
+    alert("Your details have been saved. Ambulance is on the way!");
+
+    // Trigger map and routing after successful validation
+     // Trigger location and map after successful validation
+     getPatientLocation();
+}
+
+
+// Get patient location and then call triggerSOS
+function getPatientLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            patientLocation = [position.coords.latitude, position.coords.longitude];
+            // patientLocation = [22.7196, 75.8577]; // Optional fixed test location
+            triggerSOS();
+            showContactNumberToDriver();
+        }, function (error) {
+            alert("Please enable location access to order an ambulance.");
+        });
+    } else {
+        alert("Geolocation is not supported by your browser.");
+    }
+}
+
+// Show map and calculate route
+let routingControl = null;
+let patientMarker = null;
+let driverMarker = null;
+const driverIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684831.png',
+    iconSize: [35, 35]
+});
+
+const patientIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+    iconSize: [35, 35]
+});
+
+
+function triggerSOS() {
+    if (!patientLocation) {
+        alert("Location not found! Please enable location access.");
+        return;
+    }
+
+    document.querySelector('.sos-button').style.display = 'none';
+    document.getElementById('map-patient').style.display = 'block';
+
+    if (!mapPatient) {
+        mapPatient = L.map('map-patient').setView(patientLocation, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(mapPatient);
+    } else {
+        mapPatient.setView(patientLocation, 13);
+        mapPatient.invalidateSize();
+    }
+
+    // Remove old marker if exists
+    if (patientMarker) {
+        mapPatient.removeLayer(patientMarker);
+    }
+        if (driverMarker) {mapPatient.removeLayer(driverMarker);
+        }
+    
+
+
+    patientMarker = L.marker(patientLocation,{ icon: patientIcon }).addTo(mapPatient).bindPopup("Patient's Location").openPopup();
+  // Get Driver Location (Simulated for now)
+    getDriverLocation();
+
+// Draw route between driver and patient
+    //updateRoute();
+    // Remove old routing control if exists
+    
+}
+function getDriverLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            let driverLocation = [position.coords.latitude, position.coords.longitude];
+
+            // Mock location for testing
+            // driverLocation = [22.7200, 75.8580]; 
+
+            console.log("Driver's location:", driverLocation);
+
+            // Add or update driver marker
+            if (driverMarker) {
+                driverMarker.setLatLng(driverLocation);
+            } else {
+                driverMarker = L.marker(driverLocation, { icon: driverIcon })
+                    .addTo(mapPatient)
+                    .bindPopup("Driver's Location")
+                    .openPopup();
+            }
+
+            // Update route to show driver movement
+            updateRoute();
+        });
+    } else {
+        alert("Driver location not available.");
+    }
+}
+
+// Function to update route from driver to patient
+
+function triggerSOS() {
+    if (!patientLocation) {
+        alert("Location not found! Please enable location access.");
+        return;
+    }
+
+    document.querySelector('.sos-button').style.display = 'none';
+    document.getElementById('map-patient').style.display = 'block';
+
+    if (!mapPatient) {
+        mapPatient = L.map('map-patient').setView(patientLocation, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(mapPatient);
+    } else {
+        mapPatient.setView(patientLocation, 13);
+        mapPatient.invalidateSize();
+    }
+
+    if (patientMarker) mapPatient.removeLayer(patientMarker);
+    if (driverMarker) mapPatient.removeLayer(driverMarker);
+
+    patientMarker = L.marker(patientLocation, { icon: patientIcon })
+        .addTo(mapPatient)
+        .bindPopup("Patient's Location")
+        .openPopup();
+
+    getDriverLocation(); // async → will call updateRoute() inside
+}
+
+function getDriverLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            let driverLocation = [position.coords.latitude, position.coords.longitude];
+            console.log("Driver's location:", driverLocation);
+
+            if (driverMarker) {
+                driverMarker.setLatLng(driverLocation);
+            } else {
+                driverMarker = L.marker(driverLocation, { icon: driverIcon })
+                    .addTo(mapPatient)
+                    .bindPopup("Driver's Location")
+                    .openPopup();
+            }
+
+            updateRoute();
+        });
+    } else {
+        alert("Driver location not available.");
+    }
+}
+
+function updateRoute() {
+    if (routingControl) {
+        mapPatient.removeControl(routingControl);
+    }
+
+    if (driverMarker && patientMarker) {
+        routingControl = L.Routing.control({
+            waypoints: [
+                driverMarker.getLatLng(),
+                patientMarker.getLatLng(),
+                L.latLng(hospitalLocation)
+            ],
+            routeWhileDragging: false
+        }).addTo(mapPatient);
+    }
+
+    document.getElementById('eta-container').style.display = 'block';
+}
+
+
+// (Mock) Send contact number to driver
+function showContactNumberToDriver() {
+    console.log("Contact number for driver:", contactNumber);
+    // Add AJAX or socket code to pass this to the driver view if needed
+}
+
+    
+    function loginDriver() {
+    document.getElementById('driver-login').style.display = 'none';
+    document.getElementById('map-driver').style.display = 'block';
+    document.getElementById('legend-driver').style.display = 'block';
+
+    const driverCoords = [22.7200, 75.8700]; // Indore, slight offset
+    const patientLocation = [22.7196, 75.8577];
+
+    // 🗺️ Create the map
+    mapDriver = L.map('map-driver').setView(driverCoords, 14);
+
+    // 🌍 Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(mapDriver);
+    //iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png'
+
+    // ✅ Custom Red and Green Icons
+    const greenIcon = new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+
+    const redIcon = new L.Icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+
+    // 🏥 Dummy hospital data in Indore
+    const hospitals = [
+        { name: "City Hospital", coords: [22.7205, 75.8650], available: true },
+        { name: "Sunrise Clinic", coords: [22.7235, 75.8610], available: false },
+        { name: "Apollo Indore", coords: [22.7285, 75.8600], available: true }
+    ];
+
+    // 📍 Add ambulance (driver) and patient markers
+    L.marker(driverCoords).addTo(mapDriver).bindPopup("Ambulance Location").openPopup();
+    L.marker(patientLocation).addTo(mapDriver).bindPopup("Patient Location");
+
+    // 🏥 Add hospital markers
+    hospitals.forEach(hospital => {
+        L.marker(hospital.coords, {
+            icon: hospital.available ? greenIcon : redIcon
+        }).addTo(mapDriver).bindPopup(
+            `${hospital.name}<br>Status: ${hospital.available ? '🟢 Available' : '🔴 Full'}`
+        );
+    });
+
+    // 🛣️ Draw route to first available hospital
+    const availableHospital = hospitals.find(h => h.available);
+    if (availableHospital) {
+        L.Routing.control({
+            waypoints: [
+                L.latLng(driverCoords),
+                L.latLng(patientLocation),
+                L.latLng(availableHospital.coords)
+            ],
+            routeWhileDragging: false
+        }).addTo(mapDriver);
+    }
+
+    // 📞 Mock contact number
+    document.getElementById('driver-contact-number').innerHTML = "Contact Number: 9876543210";
+}
+
+    function upload() {
+    const formData = new FormData();
+    
+    formData.append("patient_name", document.getElementById("patient-name").value);
+    formData.append("identity_type", document.getElementById("identity-type").value);
+    formData.append("identity_value", document.getElementById("identity-value").value);
+    formData.append("country_code", document.getElementById("country-code").value);
+    formData.append("contact_number", document.getElementById("contact-number").value);
+    formData.append("temperature", document.getElementById("temperature").value);
+    formData.append("blood_group", document.getElementById("blood-group").value);
+    formData.append("pulse_rate", document.getElementById("pulse-rate").value);
+    formData.append("blood_pressure", document.getElementById("blood-pressure").value);
+    formData.append("oxygen_saturation", document.getElementById("oxygen-saturation").value);
+    formData.append("respiratory_rate", document.getElementById("respiratory-rate").value);
+    formData.append("blood_glucose", document.getElementById("blood-glucose").value);
+    formData.append("severity", document.getElementById("severity").value);
+    formData.append("current_symptoms", document.getElementById("current-symptoms").value);
+
+    // Handle file upload
+    const fileInput = document.getElementById("ecg-report");
+    if (fileInput.files.length > 0) {
+        formData.append("ecg_report", fileInput.files[0]);  
+    }
+    console.log("API URL:", "/api/submit-paramedic-data/");
+    fetch("http://127.0.0.1:8000/api/submit_paramedic_data/", { // Use actual Django API URL
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + localStorage.getItem("token") // If using authentication
+        },
+        body: formData // FormData automatically sets the correct Content-Type
+    })
+    .then(response => response.json())
+.then(data => {
+    console.log("Response Data:", data);  // Debugging line to see actual response
+
+    if (data.success || data.message) {  // Accept both success & message as success
+        document.getElementById("status").innerText = "✅ Data uploaded successfully!";
+    } else {
+        document.getElementById("status").innerText = "❌ Error: " + (data.error || "Unknown error");
+    }
+})
+
+
+}
+
+</script>
+</body>
+</html>
